@@ -267,8 +267,8 @@ const createPlane = () => {
 
   group.add(mesh)
 
-  tControls.attach(mesh)
-  tControls.setMode('translate')
+  // tControls.attach(mesh)
+  // tControls.setMode('translate')
 }
 
 function onWindowResize() {
@@ -279,8 +279,6 @@ function onWindowResize() {
 }
 
 function onSelectStart(event) {
-  console.log(scene.children)
-
   const controller = event.target
 
   const intersections = getIntersections(controller)
