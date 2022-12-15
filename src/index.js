@@ -144,8 +144,8 @@ function init() {
   gui.domElement.style.visibility = 'hidden';
 
 
-  let group = new InteractiveGroup(renderer, camera)
-  scene.add(group)
+  let groupGui = new InteractiveGroup(renderer, camera)
+  scene.add(groupGui)
 
   const mesh = new HTMLMesh(gui.domElement)
   mesh.position.x = -0.75
@@ -153,7 +153,7 @@ function init() {
   mesh.position.z = -0.5
   mesh.rotation.y = Math.PI / 4
   mesh.scale.setScalar(2)
-  group.add(mesh)
+  groupGui.add(mesh)
 
   // controllers
 
@@ -313,9 +313,7 @@ function getIntersections(controller) {
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
 
-  const groupImported = scene.children.find((item) => item.name === 'imported')
-
-  return raycaster.intersectObjects(groupImported.children, false)
+  return raycaster.intersectObjects(group.children, false)
 }
 
 function intersectObjects(controller) {
