@@ -35,6 +35,7 @@ const params = {
   clipping: 0,
   negated: 0,
   addPlane: () => createPlane(),
+  hidePlanes: 0,
 }
 
 init()
@@ -144,6 +145,11 @@ function init() {
   })
 
   gui.add(params, 'addPlane')
+  gui.add(params, 'hidePlanes', 0, 1, 1).onChange(() => {
+    const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
+
+    planesGeometry.forEach((item) => (item.visible = !item.visible))
+  })
   gui.domElement.style.visibility = 'hidden'
 
   let groupGui = new InteractiveGroup(renderer, camera)
@@ -358,8 +364,8 @@ function animate() {
 function render() {
   cleanIntersected()
 
-  // intersectObjects(controller1)
-  // intersectObjects(controller2)
+  intersectObjects(controller1)
+  intersectObjects(controller2)
 
   renderer.render(scene, camera)
 }
