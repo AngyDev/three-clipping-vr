@@ -273,8 +273,8 @@ const createPlane = () => {
 
   group.add(mesh)
 
-  tControls.attach(mesh)
-  tControls.setMode('rotate')
+  // tControls.attach(mesh)
+  // tControls.setMode('rotate')
 }
 
 function onWindowResize() {
