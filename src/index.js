@@ -110,7 +110,7 @@ function init() {
 
   groupFiles = new THREE.Group()
   groupFiles.name = 'imported'
-  scene.add(groupFiles)
+  // scene.add(groupFiles)
 
   // Renderer
 
