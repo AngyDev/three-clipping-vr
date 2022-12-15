@@ -22,7 +22,7 @@ let baseReferenceSpace
 const intersected = []
 const tempMatrix = new THREE.Matrix4()
 
-let controls, tControls, group
+let controls, tControls, group, groupFiles
 
 let planeMesh, planeMesh2
 
@@ -104,8 +104,12 @@ function init() {
   // })
 
   group = new THREE.Group()
-  group.name = 'imported'
+  group.name = 'objects'
   scene.add(group)
+
+  groupFiles = new THREE.Group()
+  groupFiles.name = 'imported'
+  scene.add(groupFiles)
 
   // Renderer
 
@@ -180,7 +184,6 @@ function init() {
 
   //
 
-
   line.name = 'line'
   line.scale.z = 5
 
@@ -250,6 +253,7 @@ const createMeshFromFile = (geometry) => {
   // mesh.scale.set(0.5, 0.5, 0.5)
 
   group.add(mesh)
+  groupFiles.add(mesh)
 }
 
 // document.getElementById('addPlanes').addEventListener('click', () => {
@@ -257,7 +261,7 @@ const createMeshFromFile = (geometry) => {
 // })
 
 const createPlane = () => {
-  const geometry = new THREE.PlaneGeometry(1, 1, 1, 1)
+  const geometry = new THREE.PlaneGeometry(2, 2, 1, 1)
   const material = new THREE.MeshStandardMaterial({
     color: '#38382f',
     side: THREE.DoubleSide,
@@ -265,10 +269,12 @@ const createPlane = () => {
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = 'plane'
 
+  mesh.position.set(1, 1, -1)
+
   group.add(mesh)
 
-  // tControls.attach(mesh)
-  // tControls.setMode('translate')
+  tControls.attach(mesh)
+  tControls.setMode('rotate')
 }
 
 function onWindowResize() {
@@ -284,7 +290,6 @@ function onSelectStart(event) {
   const intersections = getIntersections(controller)
 
   if (intersections.length > 0) {
-    console.log(intersections);
     const intersection = intersections[0]
 
     const object = intersection.object
@@ -359,8 +364,8 @@ function render() {
   renderer.render(scene, camera)
 }
 
-const negated = document.getElementById('negated')
-const negatedBox = document.getElementById('negatedBox')
+// const negated = document.getElementById('negated')
+// const negatedBox = document.getElementById('negatedBox')
 
 // document.getElementById('clipping').addEventListener('click', () => {
 //   clippingObj()
@@ -418,9 +423,9 @@ const clippingObj = () => {
     })
 
     // Creates the clipping object with colors
-    addColorToClippedMesh(scene, group, planes, planes, false)
+    addColorToClippedMesh(scene, groupFiles, planes, planes, false)
 
-    group.children.map((object) => {
+    groupFiles.children.map((object) => {
       object.material.clipIntersection = false
     })
 
@@ -434,7 +439,7 @@ const clippingObj = () => {
         scene.remove(object)
       })
 
-    group.children.map((mesh) => {
+    groupFiles.children.map((mesh) => {
       mesh.material.clippingPlanes = []
     })
   }
@@ -463,18 +468,18 @@ const negatedClipping = () => {
   if (count % 2 != 0) {
     planes.forEach((item) => item.negate())
     // removes the previous clipping planes with negated planes for the mesh and original planes for the colored planes
-    addColorToClippedMesh(scene, group, planes, planesOriginal, true)
+    addColorToClippedMesh(scene, groupFiles, planes, planesOriginal, true)
 
-    group.children.map((object) => {
+    groupFiles.children.map((object) => {
       object.material.clipIntersection = true
     })
   } else {
     planes.forEach((item) => item.negate())
 
     // removes the previous clipping planes with negated planes for the mesh and original planes for the colored planes
-    addColorToClippedMesh(scene, group, planesOriginal, planesOriginal, false)
+    addColorToClippedMesh(scene, groupFiles, planesOriginal, planesOriginal, false)
 
-    group.children.map((object) => {
+    groupFiles.children.map((object) => {
       object.material.clipIntersection = false
     })
   }
