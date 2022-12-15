@@ -1,1 +1,3 @@
-# three-clipping-vr
+# Three Clipping VR
+
+https://clipping-vr.netlify.app/
