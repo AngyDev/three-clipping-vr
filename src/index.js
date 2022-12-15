@@ -6,6 +6,9 @@ import { VRButton } from 'three/addons/webxr/VRButton.js'
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+import { HTMLMesh } from 'three/addons/interactive/HTMLMesh.js'
+import { InteractiveGroup } from 'three/addons/interactive/InteractiveGroup.js'
 
 let container
 let camera, scene, renderer
@@ -27,6 +30,12 @@ let planes = []
 let planesOriginal = []
 
 const pointer = new THREE.Vector2()
+
+const params = {
+  clipping: false,
+  negated: false,
+  addPlane: () => createPlane(),
+}
 
 init()
 animate()
@@ -120,6 +129,31 @@ function init() {
   })
 
   scene.add(tControls)
+
+  // GUI
+  const gui = new GUI()
+  gui.add(params, 'clipping').onChange(() => {
+    clippingObj()
+  })
+
+  gui.add(params, 'negated').onChange(() => {
+    negatedClipping()
+  })
+
+  gui.add(params, 'addPlane')
+  gui.domElement.style.visibility = 'hidden';
+
+
+  let group = new InteractiveGroup(renderer, camera)
+  scene.add(group)
+
+  const mesh = new HTMLMesh(gui.domElement)
+  mesh.position.x = -0.75
+  mesh.position.y = 1.5
+  mesh.position.z = -0.5
+  mesh.rotation.y = Math.PI / 4
+  mesh.scale.setScalar(2)
+  group.add(mesh)
 
   // controllers
 
@@ -216,12 +250,14 @@ const createMeshFromFile = (geometry) => {
   // mesh.scale.setScalar(Math.random() + 0.5)
   // mesh.scale.set(0.5, 0.5, 0.5)
 
-  console.log(mesh.position)
-
   group.add(mesh)
 }
 
-document.getElementById('addPlanes').addEventListener('click', () => {
+// document.getElementById('addPlanes').addEventListener('click', () => {
+//   createPlane()
+// })
+
+const createPlane = () => {
   const geometry = new THREE.PlaneGeometry(1, 1, 1, 1)
   const material = new THREE.MeshStandardMaterial({
     color: '#38382f',
@@ -229,13 +265,12 @@ document.getElementById('addPlanes').addEventListener('click', () => {
   })
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = 'plane'
-  mesh.rotation.x = -Math.PI / 2
 
   group.add(mesh)
 
   tControls.attach(mesh)
   tControls.setMode('translate')
-})
+}
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight
@@ -248,8 +283,6 @@ function onSelectStart(event) {
   const controller = event.target
 
   const intersections = getIntersections(controller)
-
-  console.log(intersections)
 
   if (intersections.length > 0) {
     const intersection = intersections[0]
@@ -280,7 +313,9 @@ function getIntersections(controller) {
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
 
-  return raycaster.intersectObjects(group.children, false)
+  const groupImported = scene.children.find((item) => item.name === 'imported')
+
+  return raycaster.intersectObjects(groupImported.children, false)
 }
 
 function intersectObjects(controller) {
@@ -329,14 +364,18 @@ function render() {
 const negated = document.getElementById('negated')
 const negatedBox = document.getElementById('negatedBox')
 
-document.getElementById('clipping').addEventListener('click', () => {
+// document.getElementById('clipping').addEventListener('click', () => {
+//   clippingObj()
+// })
+
+const clippingObj = () => {
   planes = []
   planesOriginal = []
   const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
 
   if (result.length === 0) {
     negatedBox.style.display = 'unset'
-    const planesGeometry = scene.children.filter((object) => object.name.startsWith('plane'))
+    const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
     const normals = []
     const centers = []
 
@@ -401,17 +440,15 @@ document.getElementById('clipping').addEventListener('click', () => {
       mesh.material.clippingPlanes = []
     })
   }
-})
-
-document.getElementById('hidePlane').addEventListener('click', () => {
-  const planesGeometry = scene.children.filter((object) => object.name.startsWith('plane'))
-
-  planesGeometry.forEach((item) => (item.visible = !item.visible))
-})
+}
 
 let count = 0
 
-negated.addEventListener('click', () => {
+// negated.addEventListener('click', () => {
+//   negatedClipping()
+// })
+
+const negatedClipping = () => {
   count++
 
   const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
@@ -443,7 +480,13 @@ negated.addEventListener('click', () => {
       object.material.clipIntersection = false
     })
   }
-})
+}
+
+// document.getElementById('hidePlane').addEventListener('click', () => {
+//   const planesGeometry = scene.children.filter((object) => object.name.startsWith('plane'))
+
+//   planesGeometry.forEach((item) => (item.visible = !item.visible))
+// })
 
 /**
  * Creates a clipping object
