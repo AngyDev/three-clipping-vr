@@ -14,6 +14,8 @@ let controllerGrip1, controllerGrip2
 
 let raycaster
 
+let baseReferenceSpace
+
 const intersected = []
 const tempMatrix = new THREE.Matrix4()
 
@@ -23,6 +25,8 @@ let planeMesh, planeMesh2
 
 let planes = []
 let planesOriginal = []
+
+const pointer = new THREE.Vector2()
 
 init()
 animate()
@@ -34,12 +38,14 @@ function init() {
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0x808080)
 
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
-  // camera.position.set(0, 1.6, 3);
-  camera.position.set(0, -200, 100)
+  // camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
+  // camera.position.set(0, -200, 100)
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10)
+  camera.position.set(0, 1.6, 3)
 
   controls = new OrbitControls(camera, container)
-  // controls.target.set(0, 1.6, 0);
+  controls.target.set(0, 1.6, 0)
   controls.update()
 
   const floorGeometry = new THREE.PlaneGeometry(4, 4)
@@ -65,66 +71,32 @@ function init() {
   // light.shadow.mapSize.set(4096, 4096);
   // scene.add(light);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
+  const directionalLight = new THREE.DirectionalLight(0xffffff)
   directionalLight.position.copy(camera.position)
   directionalLight.castShadow = true
   scene.add(directionalLight)
 
+  container.addEventListener('click', function (event) {
+    const plane = scene && scene.children.find((item) => item.name === 'plane')
+
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+    raycaster.setFromCamera(pointer, camera)
+
+    if (plane) {
+      const intersections = raycaster.intersectObject(plane, false)
+
+      if (intersections.length === 0) {
+        tControls.visible = false
+      } else {
+        tControls.visible = true
+      }
+    }
+  })
+
   group = new THREE.Group()
+  group.name = 'imported'
   scene.add(group)
-
-  // // Create box1
-  // const geometry1 = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-  // const material = new THREE.MeshStandardMaterial({
-  //   color: "#ff0000",
-  //   side: THREE.DoubleSide,
-  // });
-
-  // const box1 = new THREE.Mesh(geometry1, material);
-  // box1.name = "box1";
-  // box1.position.set(0, 1, 0);
-  // box1.renderOrder = 6;
-
-  // // Create box2
-  // const geometry2 = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-  // const material2 = new THREE.MeshStandardMaterial({
-  //   color: "#C7AC96",
-  //   side: THREE.DoubleSide,
-  // });
-
-  // const box2 = new THREE.Mesh(geometry2, material2);
-  // box2.position.set(0, 1, 0);
-  // box2.name = "box2";
-  // box2.renderOrder = 6;
-
-  // group.name = "group";
-  // group.add(box1);
-  // group.add(box2);
-
-  // Create plane
-  // const planeGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
-  // const planeMaterial = new THREE.MeshStandardMaterial({
-  //   color: "#38382f",
-  //   side: THREE.DoubleSide,
-  // });
-
-  // planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
-  // planeMesh.position.set(0, 1, 0);
-  // planeMesh.rotation.x = Math.PI / 2;
-  // planeMesh.name = "plane";
-  // scene.add(planeMesh);
-
-  // // Create plane2
-  // const planeGeometry2 = new THREE.PlaneGeometry(1, 1, 1, 1);
-  // const planeMaterial2 = new THREE.MeshStandardMaterial({
-  //   color: "#f0f0f0",
-  //   side: THREE.DoubleSide,
-  // });
-
-  // planeMesh2 = new THREE.Mesh(planeGeometry2, planeMaterial2);
-  // planeMesh2.position.set(0, 1, 0);
-  // planeMesh2.name = "plane2";
-  // scene.add(planeMesh2);
 
   // Renderer
 
@@ -135,6 +107,7 @@ function init() {
   renderer.shadowMap.enabled = true
   renderer.localClippingEnabled = true
   renderer.xr.enabled = true
+  // renderer.xr.addEventListener('sessionstart', () => (baseReferenceSpace = renderer.xr.getReferenceSpace()))
   container.appendChild(renderer.domElement)
 
   document.body.appendChild(VRButton.createButton(renderer))
@@ -233,19 +206,30 @@ const createMeshFromFile = (geometry) => {
     position = getCenter(mesh)
   }
 
-  mesh.position.set(-position.x, -position.y, -position.z)
+  // mesh.position.x = Math.random() * 4 - 2
+  // mesh.position.y = Math.random() * 2
+  // mesh.position.z = Math.random() * 4 - 2
+
+  mesh.position.set(1, 1, -1)
+
+  // mesh.position.set(-position.x, -position.y, -position.z)
+  // mesh.scale.setScalar(Math.random() + 0.5)
+  // mesh.scale.set(0.5, 0.5, 0.5)
+
+  console.log(mesh.position)
 
   group.add(mesh)
 }
 
 document.getElementById('addPlanes').addEventListener('click', () => {
-  const geometry = new THREE.PlaneGeometry(30, 30, 1, 1)
+  const geometry = new THREE.PlaneGeometry(1, 1, 1, 1)
   const material = new THREE.MeshStandardMaterial({
     color: '#38382f',
     side: THREE.DoubleSide,
   })
   const mesh = new THREE.Mesh(geometry, material)
   mesh.name = 'plane'
+  mesh.rotation.x = -Math.PI / 2
 
   scene.add(mesh)
 
@@ -264,6 +248,8 @@ function onSelectStart(event) {
   const controller = event.target
 
   const intersections = getIntersections(controller)
+
+  console.log(intersections)
 
   if (intersections.length > 0) {
     const intersection = intersections[0]
