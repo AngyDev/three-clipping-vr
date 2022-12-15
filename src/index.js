@@ -259,7 +259,7 @@ const createMeshFromFile = (geometry) => {
   // mesh.scale.set(0.5, 0.5, 0.5)
 
   group.add(mesh)
-  groupFiles.add(mesh)
+  groupFiles.add(mesh.clone())
 }
 
 // document.getElementById('addPlanes').addEventListener('click', () => {
@@ -308,6 +308,8 @@ function onSelectStart(event) {
 
 function onSelectEnd(event) {
   const controller = event.target
+
+  console.log(group);
 
   if (controller.userData.selected !== undefined) {
     const object = controller.userData.selected
@@ -365,7 +367,7 @@ function render() {
   cleanIntersected()
 
   intersectObjects(controller1)
-  intersectObjects(controller2)
+  // intersectObjects(controller2)
 
   renderer.render(scene, camera)
 }
