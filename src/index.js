@@ -116,7 +116,6 @@ function init() {
   renderer.shadowMap.enabled = true
   renderer.localClippingEnabled = true
   renderer.xr.enabled = true
-  // renderer.xr.addEventListener('sessionstart', () => (baseReferenceSpace = renderer.xr.getReferenceSpace()))
   container.appendChild(renderer.domElement)
 
   document.body.appendChild(VRButton.createButton(renderer))
@@ -141,8 +140,7 @@ function init() {
   })
 
   gui.add(params, 'addPlane')
-  gui.domElement.style.visibility = 'hidden';
-
+  gui.domElement.style.visibility = 'hidden'
 
   let groupGui = new InteractiveGroup(renderer, camera)
   scene.add(groupGui)
@@ -157,14 +155,17 @@ function init() {
 
   // controllers
 
+  const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)])
+  const line = new THREE.Line(geometry)
+
   controller1 = renderer.xr.getController(0)
-  controller1.addEventListener('selectstart', onSelectStart)
-  controller1.addEventListener('selectend', onSelectEnd)
+  // controller1.addEventListener('selectstart', onSelectStart)
+  // controller1.addEventListener('selectend', onSelectEnd)
   scene.add(controller1)
 
   controller2 = renderer.xr.getController(1)
-  controller2.addEventListener('selectstart', onSelectStart)
-  controller2.addEventListener('selectend', onSelectEnd)
+  // controller2.addEventListener('selectstart', onSelectStart)
+  // controller2.addEventListener('selectend', onSelectEnd)
   scene.add(controller2)
 
   const controllerModelFactory = new XRControllerModelFactory()
@@ -179,9 +180,7 @@ function init() {
 
   //
 
-  const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)])
 
-  const line = new THREE.Line(geometry)
   line.name = 'line'
   line.scale.z = 5
 
@@ -353,8 +352,8 @@ function animate() {
 function render() {
   cleanIntersected()
 
-  intersectObjects(controller1)
-  intersectObjects(controller2)
+  // intersectObjects(controller1)
+  // intersectObjects(controller2)
 
   renderer.render(scene, camera)
 }
