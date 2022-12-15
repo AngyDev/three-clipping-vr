@@ -76,23 +76,23 @@ function init() {
   directionalLight.castShadow = true
   scene.add(directionalLight)
 
-  container.addEventListener('click', function (event) {
-    const plane = scene && scene.children.find((item) => item.name === 'plane')
+  // container.addEventListener('click', function (event) {
+  //   const plane = scene && scene.children.find((item) => item.name === 'plane')
 
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-    raycaster.setFromCamera(pointer, camera)
+  //   pointer.x = (event.clientX / window.innerWidth) * 2 - 1
+  //   pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+  //   raycaster.setFromCamera(pointer, camera)
 
-    if (plane) {
-      const intersections = raycaster.intersectObject(plane, false)
+  //   if (plane) {
+  //     const intersections = raycaster.intersectObject(plane, false)
 
-      if (intersections.length === 0) {
-        tControls.visible = false
-      } else {
-        tControls.visible = true
-      }
-    }
-  })
+  //     if (intersections.length === 0) {
+  //       tControls.visible = false
+  //     } else {
+  //       tControls.visible = true
+  //     }
+  //   }
+  // })
 
   group = new THREE.Group()
   group.name = 'imported'
@@ -231,7 +231,7 @@ document.getElementById('addPlanes').addEventListener('click', () => {
   mesh.name = 'plane'
   mesh.rotation.x = -Math.PI / 2
 
-  scene.add(mesh)
+  group.add(mesh)
 
   tControls.attach(mesh)
   tControls.setMode('translate')
@@ -280,7 +280,7 @@ function getIntersections(controller) {
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
 
-  return raycaster.intersectObjects(scene.children, false)
+  return raycaster.intersectObjects(group.children, false)
 }
 
 function intersectObjects(controller) {
