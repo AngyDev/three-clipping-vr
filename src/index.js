@@ -32,8 +32,8 @@ let planesOriginal = []
 const pointer = new THREE.Vector2()
 
 const params = {
-  clipping: false,
-  negated: false,
+  clipping: 0,
+  negated: 0,
   addPlane: () => createPlane(),
 }
 
@@ -131,11 +131,11 @@ function init() {
 
   // GUI
   const gui = new GUI()
-  gui.add(params, 'clipping').onChange(() => {
+  gui.add(params, 'clipping', 0, 1, 1).onChange(() => {
     clippingObj()
   })
 
-  gui.add(params, 'negated').onChange(() => {
+  gui.add(params, 'negated', 0, 1, 1).onChange(() => {
     negatedClipping()
   })
 
@@ -159,8 +159,8 @@ function init() {
   const line = new THREE.Line(geometry)
 
   controller1 = renderer.xr.getController(0)
-  // controller1.addEventListener('selectstart', onSelectStart)
-  // controller1.addEventListener('selectend', onSelectEnd)
+  controller1.addEventListener('selectstart', onSelectStart)
+  controller1.addEventListener('selectend', onSelectEnd)
   scene.add(controller1)
 
   controller2 = renderer.xr.getController(1)
@@ -279,11 +279,14 @@ function onWindowResize() {
 }
 
 function onSelectStart(event) {
+  console.log(scene.children)
+
   const controller = event.target
 
   const intersections = getIntersections(controller)
 
   if (intersections.length > 0) {
+    console.log(intersections);
     const intersection = intersections[0]
 
     const object = intersection.object
@@ -371,7 +374,7 @@ const clippingObj = () => {
   const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
 
   if (result.length === 0) {
-    negatedBox.style.display = 'unset'
+    // negatedBox.style.display = 'unset'
     const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
     const normals = []
     const centers = []
@@ -426,7 +429,7 @@ const clippingObj = () => {
     // const planesOriginal = [];
     planesOriginal = planes.map((item) => item.clone())
   } else {
-    negatedBox.style.display = 'none'
+    // negatedBox.style.display = 'none'
     scene.children
       .filter((object) => object.name.startsWith('Clipping'))
       .map((object) => {
