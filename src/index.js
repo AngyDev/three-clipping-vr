@@ -28,7 +28,8 @@ let planeMesh, planeMesh2
 
 let planes = []
 let planesOriginal = []
-let planeSelected
+let objectSelected
+let joinMesh = false
 
 const pointer = new THREE.Vector2()
 
@@ -40,7 +41,7 @@ const params = {
   distance: 1,
   rotation: 1,
   scale: 1,
-  scalePlane: 1,
+  joinMesh: () => joinMeshFn(),
 }
 
 init()
@@ -150,6 +151,7 @@ function init() {
   // })
 
   gui.add(params, 'addPlane')
+  gui.add(params, 'joinMesh')
   gui.add(params, 'hidePlanes', 0, 1, 1).onChange(() => {
     // TODO correct the group.children
     const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
@@ -162,16 +164,16 @@ function init() {
   // gui.add(params, 'rotation', 1.0, 20.0).onChange(() => {
   //   group.rotation.y = -params.rotation
   // })
+  // gui.add(params, 'scale', -5.0, 5.0).onChange(() => {
+  //   group.scale.x = params.scale
+  //   group.scale.y = params.scale
+  //   group.scale.z = params.scale
+  // })
   gui.add(params, 'scale', -5.0, 5.0).onChange(() => {
-    group.scale.x = params.scale
-    group.scale.y = params.scale
-    group.scale.z = params.scale
-  })
-  gui.add(params, 'scalePlane', -5.0, 5.0).onChange(() => {
     // TODO the planes can't be in a group
-    planeSelected.scale.x = params.scalePlane
-    planeSelected.scale.y = params.scalePlane
-    planeSelected.scale.z = params.scalePlane
+    objectSelected.scale.x = params.scale
+    objectSelected.scale.y = params.scale
+    objectSelected.scale.z = params.scale
   })
   gui.domElement.style.visibility = 'hidden'
 
@@ -197,8 +199,8 @@ function init() {
   scene.add(controller1)
 
   controller2 = renderer.xr.getController(1)
-  controller2.addEventListener('selectstart', onSelectStartGroup)
-  controller2.addEventListener('selectend', onSelectEnd)
+  // controller2.addEventListener('selectstart', onSelectStart)
+  // controller2.addEventListener('selectend', onSelectEnd)
   scene.add(controller2)
 
   const controllerModelFactory = new XRControllerModelFactory()
@@ -265,6 +267,7 @@ const createMeshFromFile = (geometry) => {
     wireframe: false,
   })
   mesh = new THREE.Mesh(geometry, material)
+  mesh.name = 'objects'
 
   // saves the position of the first element
   if (!position) {
@@ -282,6 +285,11 @@ const createMeshFromFile = (geometry) => {
   // mesh.scale.set(0.5, 0.5, 0.5)
 
   group.add(mesh)
+  // scene.add(mesh)
+}
+
+const joinMeshFn = () => {
+  joinMesh = !joinMesh
 }
 
 // document.getElementById('addPlanes').addEventListener('click', () => {
@@ -299,9 +307,9 @@ const createPlane = () => {
 
   mesh.position.set(1, 1, -1)
 
-  groupPlanes.add(mesh)
+  // groupPlanes.add(mesh)
 
-  // group.add(mesh)
+  group.add(mesh)
 
   // scene.add(mesh)
 
@@ -321,34 +329,43 @@ function onSelectStart(event) {
 
   const intersections = getIntersections(controller)
 
-  if (intersections.length > 0) {
-    const intersection = intersections[0]
-
-    const object = intersection.object
-    object.material.emissive.b = 1
-    controller.attach(object)
-
-    planeSelected = object
-
-    controller.userData.selected = object
-  }
-}
-
-function onSelectStartGroup(event) {
-  const controller = event.target
-
-  const intersections = getIntersectionsGroup(controller)
+  console.log('intersections', intersections)
 
   if (intersections.length > 0) {
     const intersection = intersections[0]
 
     const object = intersection.object
     object.material.emissive.b = 1
-    controller.attach(object)
+
+    if (joinMesh) {
+      controller.attach(group)
+    } else {
+      controller.attach(object)
+    }
+
+    objectSelected = object
 
     controller.userData.selected = object
   }
 }
+
+// function onSelectStartGroup(event) {
+//   const controller = event.target
+
+//   const intersections = getIntersectionsGroup(controller)
+
+//   if (intersections.length > 0) {
+//     const intersection = intersections[0]
+
+//     const object = intersection.object
+//     object.material.emissive.b = 1
+//     controller.attach(object)
+
+//     planeSelected = object
+
+//     controller.userData.selected = object
+//   }
+// }
 
 function onSelectEnd(event) {
   const controller = event.target
@@ -368,17 +385,17 @@ function getIntersections(controller) {
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
 
-  return raycaster.intersectObjects(groupPlanes.children, false)
-}
-
-function getIntersectionsGroup(controller) {
-  tempMatrix.identity().extractRotation(controller.matrixWorld)
-
-  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
-  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
-
   return raycaster.intersectObjects(group.children, false)
 }
+
+// function getIntersectionsGroup(controller) {
+//   tempMatrix.identity().extractRotation(controller.matrixWorld)
+
+//   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
+//   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
+
+//   return raycaster.intersectObjectsGroup(group.children, false)
+// }
 
 function intersectObjects(controller) {
   // Do not highlight when already selected
@@ -387,27 +404,6 @@ function intersectObjects(controller) {
 
   const line = controller.getObjectByName('line')
   const intersections = getIntersections(controller)
-
-  if (intersections.length > 0) {
-    const intersection = intersections[0]
-
-    const object = intersection.object
-    object.material.emissive.r = 1
-    intersected.push(object)
-
-    line.scale.z = intersection.distance
-  } else {
-    line.scale.z = 5
-  }
-}
-
-function intersectObjectsGroup(controller) {
-  // Do not highlight when already selected
-
-  if (controller.userData.selected !== undefined) return
-
-  const line = controller.getObjectByName('line')
-  const intersections = getIntersectionsGroup(controller)
 
   if (intersections.length > 0) {
     const intersection = intersections[0]
@@ -439,7 +435,7 @@ function render() {
   cleanIntersected()
 
   intersectObjects(controller1)
-  intersectObjectsGroup(controller2)
+  // intersectObjects(controller2)
 
   renderer.render(scene, camera)
 }
