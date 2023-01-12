@@ -37,8 +37,8 @@ const params = {
   clipping: 0,
   negated: 0,
   addPlane: () => createPlane(),
-  hidePlanes: 0,
-  distance: 1,
+  hidePlanes: () => hidePlanes(),
+  // distance: 1,
   rotation: 1,
   scale: 1,
   joinMesh: () => joinMeshFn(),
@@ -151,16 +151,11 @@ function init() {
   // })
 
   gui.add(params, 'addPlane')
+  gui.add(params, 'hidePlanes')
   gui.add(params, 'joinMesh')
-  gui.add(params, 'hidePlanes', 0, 1, 1).onChange(() => {
-    // TODO correct the group.children
-    const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
-
-    planesGeometry.forEach((item) => (item.visible = !item.visible))
-  })
-  gui.add(params, 'distance', 1.0, 20.0).onChange(() => {
-    group.position.z = -params.distance * 0.3048
-  })
+  // gui.add(params, 'distance', 1.0, 20.0).onChange(() => {
+  //   group.position.z = -params.distance * 0.3048
+  // })
   // gui.add(params, 'rotation', 1.0, 20.0).onChange(() => {
   //   group.rotation.y = -params.rotation
   // })
@@ -241,6 +236,10 @@ document.getElementById('file').onchange = (e) => {
   }
 }
 
+/**
+ * Load the imported file and create the mesh from the file
+ * @param {File} file The imported file
+ */
 const loadFile = (file) => {
   let reader = new FileReader()
 
@@ -288,14 +287,29 @@ const createMeshFromFile = (geometry) => {
   // scene.add(mesh)
 }
 
+/**
+ * Joins the imported object with the planes to handle them together
+ */
 const joinMeshFn = () => {
   joinMesh = !joinMesh
+}
+
+/**
+ * Hides all the planes in the scene
+ */
+const hidePlanes = () => {
+  const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
+
+  planesGeometry.forEach((item) => (item.visible = !item.visible))
 }
 
 // document.getElementById('addPlanes').addEventListener('click', () => {
 //   createPlane()
 // })
 
+/**
+ * Creates the plane to add to the scene
+ */
 const createPlane = () => {
   const geometry = new THREE.PlaneGeometry(2, 2, 1, 1)
   const material = new THREE.MeshStandardMaterial({
@@ -334,48 +348,42 @@ function onSelectStart(event) {
   if (intersections.length > 0) {
     const intersection = intersections[0]
 
-    const object = intersection.object
-    object.material.emissive.b = 1
-
     if (joinMesh) {
+      group.children.forEach((item) => {
+        item.material.emissive.b = 1
+      })
+
       controller.attach(group)
+      controller.userData.selected = group
     } else {
+      const object = intersection.object
+      object.material.emissive.b = 1
+
       controller.attach(object)
+      controller.userData.selected = object
+
+      objectSelected = object
     }
-
-    objectSelected = object
-
-    controller.userData.selected = object
   }
 }
-
-// function onSelectStartGroup(event) {
-//   const controller = event.target
-
-//   const intersections = getIntersectionsGroup(controller)
-
-//   if (intersections.length > 0) {
-//     const intersection = intersections[0]
-
-//     const object = intersection.object
-//     object.material.emissive.b = 1
-//     controller.attach(object)
-
-//     planeSelected = object
-
-//     controller.userData.selected = object
-//   }
-// }
 
 function onSelectEnd(event) {
   const controller = event.target
 
   if (controller.userData.selected !== undefined) {
     const object = controller.userData.selected
-    object.material.emissive.b = 0
-    group.attach(object)
+    if (object.type === 'Mesh') {
+      object.material.emissive.b = 0
+      group.attach(object)
+    } else {
+      object.children.forEach((item) => {
+        item.material.emissive.b = 0
+      })
+      scene.attach(group)
+    }
 
     controller.userData.selected = undefined
+    console.log(controller.userData.selected)
   }
 }
 
