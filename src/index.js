@@ -597,6 +597,7 @@ const clippingObj = () => {
     planesOriginal = planes.map((item) => item.clone())
   } else {
     // negatedBox.style.display = 'none'
+    console.log(scene.children);
     scene.children
       .filter((object) => object.name.startsWith('Clipping'))
       .map((object) => {
@@ -604,7 +605,7 @@ const clippingObj = () => {
       })
 
     group.children.map((mesh) => {
-      if (object.name !== 'plane') {
+      if (mesh.name !== 'plane') {
         mesh.material.clippingPlanes = []
       }
     })
