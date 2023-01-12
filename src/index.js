@@ -30,11 +30,12 @@ let planes = []
 let planesOriginal = []
 let objectSelected
 let joinMesh = false
+let clippingOn = false
 
 const pointer = new THREE.Vector2()
 
 const params = {
-  clipping: 0,
+  clipping: () => clippingObj(),
   negated: 0,
   addPlane: () => createPlane(),
   hidePlanes: () => hidePlanes(),
@@ -152,6 +153,7 @@ function init() {
 
   gui.add(params, 'addPlane')
   gui.add(params, 'hidePlanes')
+  gui.add(params, 'clipping')
   gui.add(params, 'joinMesh')
   // gui.add(params, 'distance', 1.0, 20.0).onChange(() => {
   //   group.position.z = -params.distance * 0.3048
@@ -165,7 +167,6 @@ function init() {
   //   group.scale.z = params.scale
   // })
   gui.add(params, 'scale', -5.0, 5.0).onChange(() => {
-    // TODO the planes can't be in a group
     objectSelected.scale.x = params.scale
     objectSelected.scale.y = params.scale
     objectSelected.scale.z = params.scale
@@ -214,7 +215,7 @@ function init() {
   line.scale.z = 5
 
   controller1.add(line.clone())
-  controller2.add(line.clone())
+  // controller2.add(line.clone())
 
   raycaster = new THREE.Raycaster()
 
@@ -339,30 +340,32 @@ function onWindowResize() {
 }
 
 function onSelectStart(event) {
-  const controller = event.target
-
-  const intersections = getIntersections(controller)
-
-  console.log('intersections', intersections)
-
-  if (intersections.length > 0) {
-    const intersection = intersections[0]
-
-    if (joinMesh) {
-      group.children.forEach((item) => {
-        item.material.emissive.b = 1
-      })
-
-      controller.attach(group)
-      controller.userData.selected = group
-    } else {
-      const object = intersection.object
-      object.material.emissive.b = 1
-
-      controller.attach(object)
-      controller.userData.selected = object
-
-      objectSelected = object
+  if (!clippingOn) {
+    const controller = event.target
+  
+    const intersections = getIntersections(controller)
+  
+    console.log('intersections', intersections)
+  
+    if (intersections.length > 0) {
+      const intersection = intersections[0]
+  
+      if (joinMesh) {
+        group.children.forEach((item) => {
+          item.material.emissive.b = 1
+        })
+  
+        controller.attach(group)
+        controller.userData.selected = group
+      } else {
+        const object = intersection.object
+        object.material.emissive.b = 1
+  
+        controller.attach(object)
+        controller.userData.selected = object
+  
+        objectSelected = object
+      }
     }
   }
 }
@@ -456,6 +459,8 @@ function render() {
 // })
 
 const clippingObj = () => {
+  clippingOn = !clippingOn
+
   planes = []
   planesOriginal = []
   const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
@@ -474,6 +479,10 @@ const clippingObj = () => {
       // Gets the centers of the planes
       const center = getCenterPoint(item)
       centers.push(center)
+
+      console.log(item);
+
+      console.log(item.position);
 
       // Creates the THREE.Plane from THREE.PlaneGeometry
       normal.set(0, 0, 1).applyQuaternion(item.quaternion)
