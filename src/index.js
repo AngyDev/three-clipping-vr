@@ -300,6 +300,7 @@ const joinMeshFn = () => {
  */
 const hidePlanes = () => {
   const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
+  console.log("planesGeometry", planesGeometry);
 
   planesGeometry.forEach((item) => (item.visible = !item.visible))
 }
@@ -342,28 +343,28 @@ function onWindowResize() {
 function onSelectStart(event) {
   if (!clippingOn) {
     const controller = event.target
-  
+
     const intersections = getIntersections(controller)
-  
+
     console.log('intersections', intersections)
-  
+
     if (intersections.length > 0) {
       const intersection = intersections[0]
-  
+
       if (joinMesh) {
         group.children.forEach((item) => {
           item.material.emissive.b = 1
         })
-  
+
         controller.attach(group)
         controller.userData.selected = group
       } else {
         const object = intersection.object
         object.material.emissive.b = 1
-  
+
         controller.attach(object)
         controller.userData.selected = object
-  
+
         objectSelected = object
       }
     }
@@ -461,82 +462,150 @@ function render() {
 const clippingObj = () => {
   clippingOn = !clippingOn
 
-  planes = []
-  planesOriginal = []
-  const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
+  const planes = group.children.filter((object) => object.name.startsWith('plane'))
+  const normals = []
+  const centers = []
 
-  if (result.length === 0) {
-    // negatedBox.style.display = 'unset'
-    const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
-    const normals = []
-    const centers = []
+  const planeList = []
 
-    planesGeometry.forEach((item) => {
-      const plane = new THREE.Plane()
-      const normal = new THREE.Vector3()
-      const point = new THREE.Vector3()
+  planes.forEach((item) => {
+    const plane = new THREE.Plane()
+    const normal = new THREE.Vector3()
+    const point = new THREE.Vector3()
 
-      // Gets the centers of the planes
-      const center = getCenterPoint(item)
-      centers.push(center)
+    // Gets the ceters of the planes
+    const center = getCenterPoint(item)
+    centers.push(center)
 
-      console.log(item);
+    // Creates the THREE.Plane from THREE.PlaneGeometry
+    normal.set(0, 0, 1).applyQuaternion(item.quaternion)
+    point.copy(item.position)
+    plane.setFromNormalAndCoplanarPoint(normal, point)
 
-      console.log(item.position);
+    // Saves the normals of the planes
+    normals.push(plane.normal)
 
-      // Creates the THREE.Plane from THREE.PlaneGeometry
-      normal.set(0, 0, 1).applyQuaternion(item.quaternion)
-      point.copy(item.position)
-      plane.setFromNormalAndCoplanarPoint(normal, point)
+    planeList.push(plane)
+  })
 
-      // Saves the normals of the planes
-      normals.push(plane.normal)
+  // Calculates the barycenter of the planes
+  const pointx = centers.reduce((prev, curr) => prev + curr.x, 0) / centers.length
+  const pointy = centers.reduce((prev, curr) => prev + curr.y, 0) / centers.length
+  const pointz = centers.reduce((prev, curr) => prev + curr.z, 0) / centers.length
+  const barycenter = new THREE.Vector3(pointx, pointy, pointz)
 
-      planes.push(plane)
-    })
+  const distances = []
 
-    // Calculates the barycenter of the planes
-    const pointx = centers.reduce((prev, curr) => prev + curr.x, 0) / centers.length
-    const pointy = centers.reduce((prev, curr) => prev + curr.y, 0) / centers.length
-    const pointz = centers.reduce((prev, curr) => prev + curr.z, 0) / centers.length
-    const barycenter = new THREE.Vector3(pointx, pointy, pointz)
+  // Gets the distance from the plane and the barycenter
+  planeList.forEach((item) => {
+    distances.push(item.distanceToPoint(barycenter))
+  })
 
-    const distances = []
+  // Negates only the plane with negative distance
+  distances.forEach((distance, index) => {
+    if (distance < 0) {
+      planeList[index].negate()
+    }
+  })
 
-    // Gets the distance from the plane and the barycenter
-    planes.forEach((item) => {
-      distances.push(item.distanceToPoint(barycenter))
-    })
-
-    // Negates only the plane with negative distance
-    distances.forEach((distance, index) => {
-      if (distance < 0) {
-        planes[index].negate()
+  group.children.map((object) => {
+    if (object.name !== 'plane') {
+      console.log("object", object);
+      if (!object.material.clippingPlanes || object.material.clippingPlanes.length === 0) {
+        object.material.clippingPlanes = planeList
+        object.material.clipIntersection = false
+      } else {
+        object.material.clippingPlanes = []
       }
-    })
-
-    // Creates the clipping object with colors
-    addColorToClippedMesh(scene, group, planes, planes, false)
-
-    group.children.map((object) => {
-      object.material.clipIntersection = false
-    })
-
-    // const planesOriginal = [];
-    planesOriginal = planes.map((item) => item.clone())
-  } else {
-    // negatedBox.style.display = 'none'
-    scene.children
-      .filter((object) => object.name.startsWith('Clipping'))
-      .map((object) => {
-        scene.remove(object)
-      })
-
-    group.children.map((mesh) => {
-      mesh.material.clippingPlanes = []
-    })
-  }
+    }
+  })
 }
+
+// const clippingObj = () => {
+//   clippingOn = !clippingOn
+
+//   planes = []
+//   planesOriginal = []
+//   // const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
+
+//   // if (result.length === 0) {
+//     // negatedBox.style.display = 'unset'
+//     const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
+//     const normals = []
+//     const centers = []
+
+//     planesGeometry.forEach((item) => {
+//       const plane = new THREE.Plane()
+//       const normal = new THREE.Vector3()
+//       const point = new THREE.Vector3()
+
+//       // Gets the centers of the planes
+//       const center = getCenterPoint(item)
+//       centers.push(center)
+
+//       // Creates the THREE.Plane from THREE.PlaneGeometry
+//       normal.set(0, 0, 1).applyQuaternion(item.quaternion)
+//       point.copy(item.position)
+//       plane.setFromNormalAndCoplanarPoint(normal, point)
+
+//       // Saves the normals of the planes
+//       normals.push(plane.normal)
+
+//       planes.push(plane)
+//     })
+
+//     // Calculates the barycenter of the planes
+//     const pointx = centers.reduce((prev, curr) => prev + curr.x, 0) / centers.length
+//     const pointy = centers.reduce((prev, curr) => prev + curr.y, 0) / centers.length
+//     const pointz = centers.reduce((prev, curr) => prev + curr.z, 0) / centers.length
+//     const barycenter = new THREE.Vector3(pointx, pointy, pointz)
+
+//     const distances = []
+
+//     // Gets the distance from the plane and the barycenter
+//     planes.forEach((item) => {
+//       distances.push(item.distanceToPoint(barycenter))
+//     })
+
+//     // Negates only the plane with negative distance
+//     distances.forEach((distance, index) => {
+//       if (distance < 0) {
+//         planes[index].negate()
+//       }
+//     })
+
+//     // Creates the clipping object with colors
+//     // addColorToClippedMesh(scene, group, planes, planes, false)
+
+//     // group.children.map((object) => {
+//     //   object.material.clipIntersection = false
+//     // })
+
+//     group.children.map((object) => {
+//       if (!object.material.clippingPlanes || object.material.clippingPlanes.length === 0) {
+//         object.material.clippingPlanes = planes;
+//         object.material.clipIntersection = false;
+//       } else {
+//         object.material.clippingPlanes = [];
+//       }
+//     });
+
+//     // const planesOriginal = [];
+//     planesOriginal = planes.map((item) => item.clone())
+
+//   // } else {
+//   //   // negatedBox.style.display = 'none'
+//   //   scene.children
+//   //     .filter((object) => object.name.startsWith('Clipping'))
+//   //     .map((object) => {
+//   //       scene.remove(object)
+//   //     })
+
+//   //   group.children.map((mesh) => {
+//   //     mesh.material.clippingPlanes = []
+//   //   })
+//   // }
+// }
 
 let count = 0
 
