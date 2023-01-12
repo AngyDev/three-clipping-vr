@@ -36,7 +36,7 @@ const pointer = new THREE.Vector2()
 
 const params = {
   clipping: () => clippingObj(),
-  negated: 0,
+  negated: () => negatedClipping(),
   addPlane: () => createPlane(),
   hidePlanes: () => hidePlanes(),
   // distance: 1,
@@ -154,6 +154,7 @@ function init() {
   gui.add(params, 'addPlane')
   gui.add(params, 'hidePlanes')
   gui.add(params, 'clipping')
+  gui.add(params, 'negated')
   gui.add(params, 'joinMesh')
   // gui.add(params, 'distance', 1.0, 20.0).onChange(() => {
   //   group.position.z = -params.distance * 0.3048
@@ -459,68 +460,6 @@ function render() {
 //   clippingObj()
 // })
 
-// const clippingObj = () => {
-//   clippingOn = !clippingOn
-
-//   const planes = group.children.filter((object) => object.name.startsWith('plane'))
-//   const normals = []
-//   const centers = []
-
-//   const planeList = []
-
-//   planes.forEach((item) => {
-//     const plane = new THREE.Plane()
-//     const normal = new THREE.Vector3()
-//     const point = new THREE.Vector3()
-
-//     // Gets the ceters of the planes
-//     const center = getCenterPoint(item)
-//     centers.push(center)
-
-//     // Creates the THREE.Plane from THREE.PlaneGeometry
-//     normal.set(0, 0, 1).applyQuaternion(item.quaternion)
-//     point.copy(item.position)
-//     plane.setFromNormalAndCoplanarPoint(normal, point)
-
-//     // Saves the normals of the planes
-//     normals.push(plane.normal)
-
-//     planeList.push(plane)
-//   })
-
-//   // Calculates the barycenter of the planes
-//   const pointx = centers.reduce((prev, curr) => prev + curr.x, 0) / centers.length
-//   const pointy = centers.reduce((prev, curr) => prev + curr.y, 0) / centers.length
-//   const pointz = centers.reduce((prev, curr) => prev + curr.z, 0) / centers.length
-//   const barycenter = new THREE.Vector3(pointx, pointy, pointz)
-
-//   const distances = []
-
-//   // Gets the distance from the plane and the barycenter
-//   planeList.forEach((item) => {
-//     distances.push(item.distanceToPoint(barycenter))
-//   })
-
-//   // Negates only the plane with negative distance
-//   distances.forEach((distance, index) => {
-//     if (distance < 0) {
-//       planeList[index].negate()
-//     }
-//   })
-
-//   group.children.map((object) => {
-//     if (object.name !== 'plane') {
-//       console.log("object", object);
-//       if (!object.material.clippingPlanes || object.material.clippingPlanes.length === 0) {
-//         object.material.clippingPlanes = planeList
-//         object.material.clipIntersection = false
-//       } else {
-//         object.material.clippingPlanes = []
-//       }
-//     }
-//   })
-// }
-
 const clippingObj = () => {
   clippingOn = !clippingOn
 
@@ -584,20 +523,10 @@ const clippingObj = () => {
       }
     })
 
-    // group.children.map((object) => {
-    //   if (!object.material.clippingPlanes || object.material.clippingPlanes.length === 0) {
-    //     object.material.clippingPlanes = planes;
-    //     object.material.clipIntersection = false;
-    //   } else {
-    //     object.material.clippingPlanes = [];
-    //   }
-    // });
-
     // const planesOriginal = [];
     planesOriginal = planes.map((item) => item.clone())
   } else {
     // negatedBox.style.display = 'none'
-    console.log(scene.children);
     scene.children
       .filter((object) => object.name.startsWith('Clipping'))
       .map((object) => {
@@ -638,7 +567,9 @@ const negatedClipping = () => {
     addColorToClippedMesh(scene, group, planes, planesOriginal, true)
 
     group.children.map((object) => {
-      object.material.clipIntersection = true
+      if (mesh.name !== 'plane') {
+        object.material.clipIntersection = true
+      }
     })
   } else {
     planes.forEach((item) => item.negate())
@@ -647,7 +578,9 @@ const negatedClipping = () => {
     addColorToClippedMesh(scene, group, planesOriginal, planesOriginal, false)
 
     group.children.map((object) => {
-      object.material.clipIntersection = false
+      if (mesh.name !== 'plane') {
+        object.material.clipIntersection = false
+      }
     })
   }
 }
