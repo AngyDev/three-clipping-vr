@@ -249,7 +249,8 @@ const createMeshFromFile = (geometry) => {
   }
 
   const material = new THREE.MeshStandardMaterial({
-    color: '#C7AC96',
+    // color: '#C7AC96',
+    color: '#a08a7a',
     side: THREE.DoubleSide,
   })
   mesh = new THREE.Mesh(geometry, material)
