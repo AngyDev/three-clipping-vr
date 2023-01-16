@@ -255,7 +255,7 @@ const loadFile = (file) => {
 }
 
 /**
- * Creates the mesh from the file's geometry
+ * Creates the mesh from the file
  * @param {THREE.BufferGeometry} geometry
  */
 const createMeshFromFile = (geometry) => {
@@ -263,9 +263,9 @@ const createMeshFromFile = (geometry) => {
     scene.remove(mesh)
   }
 
-  const material = new THREE.MeshLambertMaterial({
+  const material = new THREE.MeshStandardMaterial({
     color: '#C7AC96',
-    wireframe: false,
+    side: THREE.DoubleSide,
   })
   mesh = new THREE.Mesh(geometry, material)
   mesh.name = 'objects'
