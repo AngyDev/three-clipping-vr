@@ -78,38 +78,23 @@ function init() {
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.5))
 
-  // const light = new THREE.DirectionalLight(0xffffff);
-  // light.position.set(0, 6, 0);
-  // light.castShadow = true;
-  // light.shadow.camera.top = 2;
-  // light.shadow.camera.bottom = -2;
-  // light.shadow.camera.right = 2;
-  // light.shadow.camera.left = -2;
-  // light.shadow.mapSize.set(4096, 4096);
-  // scene.add(light);
-
   const directionalLight = new THREE.DirectionalLight(0xffffff)
-  directionalLight.position.copy(camera.position)
-  directionalLight.castShadow = true
+  directionalLight.position.set(-5, 3, -1)
+  // directionalLight.position.copy(camera.position)
+  // directionalLight.castShadow = true
   scene.add(directionalLight)
 
-  // container.addEventListener('click', function (event) {
-  //   const plane = scene && scene.children.find((item) => item.name === 'plane')
+  const directionalLight2 = new THREE.DirectionalLight(0xffffff)
+  directionalLight2.position.set(5, 3, 1)
+  // directionalLight.position.copy(camera.position)
+  // directionalLight.castShadow = true
+  scene.add(directionalLight2)
 
-  //   pointer.x = (event.clientX / window.innerWidth) * 2 - 1
-  //   pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-  //   raycaster.setFromCamera(pointer, camera)
+  const helper = new THREE.DirectionalLightHelper(directionalLight, 2)
+  scene.add(helper)
 
-  //   if (plane) {
-  //     const intersections = raycaster.intersectObject(plane, false)
-
-  //     if (intersections.length === 0) {
-  //       tControls.visible = false
-  //     } else {
-  //       tControls.visible = true
-  //     }
-  //   }
-  // })
+  const helper2 = new THREE.DirectionalLightHelper(directionalLight2, 2)
+  scene.add(helper2)
 
   group = new THREE.Group()
   group.name = 'objects'
