@@ -53,7 +53,7 @@ function init() {
   document.body.appendChild(container)
 
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x808080)
+  scene.background = new THREE.Color(0xa5bdff)
 
   // camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
   // camera.position.set(0, -200, 100)
