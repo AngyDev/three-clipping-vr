@@ -17,14 +17,10 @@ let controllerGrip1, controllerGrip2
 
 let raycaster
 
-let baseReferenceSpace
-
 const intersected = []
 const tempMatrix = new THREE.Matrix4()
 
-let controls, tControls, group, helper, groupPlanes
-
-let planeMesh, planeMesh2
+let controls, tControls, group, groupPlanes
 
 let planes = []
 let planesOriginal = []
@@ -39,7 +35,6 @@ const params = {
   negated: () => negatedClipping(),
   addPlane: () => createPlane(),
   hidePlanes: () => hidePlanes(),
-  // distance: 1,
   rotation: 1,
   scale: 1,
   joinMesh: () => joinMeshFn(),
@@ -54,9 +49,6 @@ function init() {
 
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0xa5bdff)
-
-  // camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
-  // camera.position.set(0, -200, 100)
 
   camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10)
   camera.position.set(0, 1.6, 3)
@@ -86,15 +78,7 @@ function init() {
 
   const directionalLight2 = new THREE.DirectionalLight(0xffffff)
   directionalLight2.position.set(5, 3, 1)
-  // directionalLight.position.copy(camera.position)
-  // directionalLight.castShadow = true
   scene.add(directionalLight2)
-
-  const helper = new THREE.DirectionalLightHelper(directionalLight, 2)
-  scene.add(helper)
-
-  const helper2 = new THREE.DirectionalLightHelper(directionalLight2, 2)
-  scene.add(helper2)
 
   group = new THREE.Group()
   group.name = 'objects'
@@ -128,30 +112,12 @@ function init() {
 
   // GUI
   const gui = new GUI()
-  // gui.add(params, 'clipping', 0, 1, 1).onChange(() => {
-  //   clippingObj()
-  // })
-
-  // gui.add(params, 'negated', 0, 1, 1).onChange(() => {
-  //   negatedClipping()
-  // })
 
   gui.add(params, 'addPlane')
   gui.add(params, 'hidePlanes')
   gui.add(params, 'clipping')
   gui.add(params, 'negated')
   gui.add(params, 'joinMesh')
-  // gui.add(params, 'distance', 1.0, 20.0).onChange(() => {
-  //   group.position.z = -params.distance * 0.3048
-  // })
-  // gui.add(params, 'rotation', 1.0, 20.0).onChange(() => {
-  //   group.rotation.y = -params.rotation
-  // })
-  // gui.add(params, 'scale', -5.0, 5.0).onChange(() => {
-  //   group.scale.x = params.scale
-  //   group.scale.y = params.scale
-  //   group.scale.z = params.scale
-  // })
   gui.add(params, 'scale', -5.0, 5.0).onChange(() => {
     objectSelected.scale.x = params.scale
     objectSelected.scale.y = params.scale
@@ -181,8 +147,6 @@ function init() {
   scene.add(controller1)
 
   controller2 = renderer.xr.getController(1)
-  // controller2.addEventListener('selectstart', onSelectStart)
-  // controller2.addEventListener('selectend', onSelectEnd)
   scene.add(controller2)
 
   const controllerModelFactory = new XRControllerModelFactory()
@@ -260,19 +224,10 @@ const createMeshFromFile = (geometry) => {
   if (!position) {
     position = getCenter(mesh)
   }
-
-  // mesh.position.x = Math.random() * 4 - 2
-  // mesh.position.y = Math.random() * 2
-  // mesh.position.z = Math.random() * 4 - 2
-
+  
   mesh.position.set(1, 1, -1)
 
-  // mesh.position.set(-position.x, -position.y, -position.z)
-  // mesh.scale.setScalar(Math.random() + 0.5)
-  // mesh.scale.set(0.5, 0.5, 0.5)
-
   group.add(mesh)
-  // scene.add(mesh)
 }
 
 /**
@@ -292,10 +247,6 @@ const hidePlanes = () => {
   planesGeometry.forEach((item) => (item.visible = !item.visible))
 }
 
-// document.getElementById('addPlanes').addEventListener('click', () => {
-//   createPlane()
-// })
-
 /**
  * Creates the plane to add to the scene
  */
@@ -310,14 +261,7 @@ const createPlane = () => {
 
   mesh.position.set(1, 1, -1)
 
-  // groupPlanes.add(mesh)
-
   group.add(mesh)
-
-  // scene.add(mesh)
-
-  // tControls.attach(mesh)
-  // tControls.setMode('rotate')
 }
 
 function onWindowResize() {
@@ -332,8 +276,6 @@ function onSelectStart(event) {
     const controller = event.target
 
     const intersections = getIntersections(controller)
-
-    console.log('intersections', intersections)
 
     if (intersections.length > 0) {
       const intersection = intersections[0]
@@ -387,15 +329,6 @@ function getIntersections(controller) {
   return raycaster.intersectObjects(group.children, false)
 }
 
-// function getIntersectionsGroup(controller) {
-//   tempMatrix.identity().extractRotation(controller.matrixWorld)
-
-//   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
-//   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix)
-
-//   return raycaster.intersectObjectsGroup(group.children, false)
-// }
-
 function intersectObjects(controller) {
   // Do not highlight when already selected
 
@@ -439,13 +372,6 @@ function render() {
   renderer.render(scene, camera)
 }
 
-// const negated = document.getElementById('negated')
-// const negatedBox = document.getElementById('negatedBox')
-
-// document.getElementById('clipping').addEventListener('click', () => {
-//   clippingObj()
-// })
-
 const clippingObj = () => {
   clippingOn = !clippingOn
 
@@ -454,7 +380,6 @@ const clippingObj = () => {
   const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
 
   if (result.length === 0) {
-    // negatedBox.style.display = 'unset'
     const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
     const normals = []
     const centers = []
@@ -529,10 +454,6 @@ const clippingObj = () => {
 
 let count = 0
 
-// negated.addEventListener('click', () => {
-//   negatedClipping()
-// })
-
 const negatedClipping = () => {
   count++
 
@@ -570,12 +491,6 @@ const negatedClipping = () => {
     })
   }
 }
-
-// document.getElementById('hidePlane').addEventListener('click', () => {
-//   const planesGeometry = scene.children.filter((object) => object.name.startsWith('plane'))
-
-//   planesGeometry.forEach((item) => (item.visible = !item.visible))
-// })
 
 /**
  * Creates a clipping object
