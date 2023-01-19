@@ -17,25 +17,26 @@ let controllerGrip1, controllerGrip2
 
 let raycaster
 
-let baseReferenceSpace
-
 const intersected = []
 const tempMatrix = new THREE.Matrix4()
 
-let controls, tControls, group, groupFiles
-
-let planeMesh, planeMesh2
+let controls, tControls, group, groupPlanes
 
 let planes = []
-let planesOriginal = []
+let objectSelected
+let joinMesh = false
+let clippingOn = false
 
 const pointer = new THREE.Vector2()
 
 const params = {
-  clipping: 0,
-  negated: 0,
+  clipping: () => clippingObj(),
+  negated: () => negatedClipping(),
   addPlane: () => createPlane(),
-  hidePlanes: 0,
+  hidePlanes: () => hidePlanes(),
+  rotation: 1,
+  scale: 1,
+  joinMesh: () => joinMeshFn(),
 }
 
 init()
@@ -46,10 +47,7 @@ function init() {
   document.body.appendChild(container)
 
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x808080)
-
-  // camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
-  // camera.position.set(0, -200, 100)
+  scene.background = new THREE.Color(0xa5bdff)
 
   camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10)
   camera.position.set(0, 1.6, 3)
@@ -71,46 +69,23 @@ function init() {
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.5))
 
-  // const light = new THREE.DirectionalLight(0xffffff);
-  // light.position.set(0, 6, 0);
-  // light.castShadow = true;
-  // light.shadow.camera.top = 2;
-  // light.shadow.camera.bottom = -2;
-  // light.shadow.camera.right = 2;
-  // light.shadow.camera.left = -2;
-  // light.shadow.mapSize.set(4096, 4096);
-  // scene.add(light);
-
   const directionalLight = new THREE.DirectionalLight(0xffffff)
-  directionalLight.position.copy(camera.position)
-  directionalLight.castShadow = true
+  directionalLight.position.set(-5, 3, -1)
+  // directionalLight.position.copy(camera.position)
+  // directionalLight.castShadow = true
   scene.add(directionalLight)
 
-  // container.addEventListener('click', function (event) {
-  //   const plane = scene && scene.children.find((item) => item.name === 'plane')
-
-  //   pointer.x = (event.clientX / window.innerWidth) * 2 - 1
-  //   pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-  //   raycaster.setFromCamera(pointer, camera)
-
-  //   if (plane) {
-  //     const intersections = raycaster.intersectObject(plane, false)
-
-  //     if (intersections.length === 0) {
-  //       tControls.visible = false
-  //     } else {
-  //       tControls.visible = true
-  //     }
-  //   }
-  // })
+  const directionalLight2 = new THREE.DirectionalLight(0xffffff)
+  directionalLight2.position.set(5, 3, 1)
+  scene.add(directionalLight2)
 
   group = new THREE.Group()
   group.name = 'objects'
   scene.add(group)
 
-  groupFiles = new THREE.Group()
-  groupFiles.name = 'imported'
-  // scene.add(groupFiles)
+  groupPlanes = new THREE.Group()
+  groupPlanes.name = 'planes'
+  scene.add(groupPlanes)
 
   // Renderer
 
@@ -136,19 +111,16 @@ function init() {
 
   // GUI
   const gui = new GUI()
-  gui.add(params, 'clipping', 0, 1, 1).onChange(() => {
-    clippingObj()
-  })
-
-  gui.add(params, 'negated', 0, 1, 1).onChange(() => {
-    negatedClipping()
-  })
 
   gui.add(params, 'addPlane')
-  gui.add(params, 'hidePlanes', 0, 1, 1).onChange(() => {
-    const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
-
-    planesGeometry.forEach((item) => (item.visible = !item.visible))
+  gui.add(params, 'hidePlanes')
+  gui.add(params, 'clipping')
+  gui.add(params, 'negated')
+  gui.add(params, 'joinMesh')
+  gui.add(params, 'scale', -5.0, 5.0).onChange(() => {
+    objectSelected.scale.x = params.scale
+    objectSelected.scale.y = params.scale
+    objectSelected.scale.z = params.scale
   })
   gui.domElement.style.visibility = 'hidden'
 
@@ -169,13 +141,13 @@ function init() {
   const line = new THREE.Line(geometry)
 
   controller1 = renderer.xr.getController(0)
-  controller1.addEventListener('selectstart', onSelectStart)
-  controller1.addEventListener('selectend', onSelectEnd)
+  // controller1.addEventListener('selectstart', onSelectStart)
+  // controller1.addEventListener('selectend', onSelectEnd)
   scene.add(controller1)
 
   controller2 = renderer.xr.getController(1)
-  // controller2.addEventListener('selectstart', onSelectStart)
-  // controller2.addEventListener('selectend', onSelectEnd)
+  controller2.addEventListener('selectstart', onSelectStart)
+  controller2.addEventListener('selectend', onSelectEnd)
   scene.add(controller2)
 
   const controllerModelFactory = new XRControllerModelFactory()
@@ -188,17 +160,13 @@ function init() {
   controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2))
   scene.add(controllerGrip2)
 
-  //
-
   line.name = 'line'
   line.scale.z = 5
 
-  controller1.add(line.clone())
+  // controller1.add(line.clone())
   controller2.add(line.clone())
 
   raycaster = new THREE.Raycaster()
-
-  //
 
   window.addEventListener('resize', onWindowResize)
 }
@@ -216,6 +184,10 @@ document.getElementById('file').onchange = (e) => {
   }
 }
 
+/**
+ * Load the imported file and create the mesh from the file
+ * @param {File} file The imported file
+ */
 const loadFile = (file) => {
   let reader = new FileReader()
 
@@ -229,7 +201,7 @@ const loadFile = (file) => {
 }
 
 /**
- * Creates the mesh from the file's geometry
+ * Creates the mesh from the file
  * @param {THREE.BufferGeometry} geometry
  */
 const createMeshFromFile = (geometry) => {
@@ -237,35 +209,44 @@ const createMeshFromFile = (geometry) => {
     scene.remove(mesh)
   }
 
-  const material = new THREE.MeshLambertMaterial({
-    color: '#C7AC96',
-    wireframe: false,
+  const material = new THREE.MeshStandardMaterial({
+    // color: '#C7AC96',
+    color: '#a08a7a',
+    side: THREE.DoubleSide,
   })
   mesh = new THREE.Mesh(geometry, material)
+  mesh.name = 'objects'
 
   // saves the position of the first element
   if (!position) {
     position = getCenter(mesh)
   }
 
-  // mesh.position.x = Math.random() * 4 - 2
-  // mesh.position.y = Math.random() * 2
-  // mesh.position.z = Math.random() * 4 - 2
-
   mesh.position.set(1, 1, -1)
 
-  // mesh.position.set(-position.x, -position.y, -position.z)
-  // mesh.scale.setScalar(Math.random() + 0.5)
-  // mesh.scale.set(0.5, 0.5, 0.5)
-
   group.add(mesh)
-  groupFiles.add(mesh.clone())
 }
 
-// document.getElementById('addPlanes').addEventListener('click', () => {
-//   createPlane()
-// })
+/**
+ * Joins the imported object with the planes to handle them together
+ */
+const joinMeshFn = () => {
+  joinMesh = !joinMesh
+}
 
+/**
+ * Hides all the planes in the scene
+ */
+const hidePlanes = () => {
+  const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
+  console.log('planesGeometry', planesGeometry)
+
+  planesGeometry.forEach((item) => (item.visible = !item.visible))
+}
+
+/**
+ * Creates the plane to add to the scene
+ */
 const createPlane = () => {
   const geometry = new THREE.PlaneGeometry(2, 2, 1, 1)
   const material = new THREE.MeshStandardMaterial({
@@ -278,9 +259,6 @@ const createPlane = () => {
   mesh.position.set(1, 1, -1)
 
   group.add(mesh)
-
-  // tControls.attach(mesh)
-  // tControls.setMode('rotate')
 }
 
 function onWindowResize() {
@@ -291,32 +269,51 @@ function onWindowResize() {
 }
 
 function onSelectStart(event) {
-  const controller = event.target
+  if (!clippingOn) {
+    const controller = event.target
 
-  const intersections = getIntersections(controller)
+    const intersections = getIntersections(controller)
 
-  if (intersections.length > 0) {
-    const intersection = intersections[0]
+    if (intersections.length > 0) {
+      const intersection = intersections[0]
 
-    const object = intersection.object
-    object.material.emissive.b = 1
-    controller.attach(object)
+      if (joinMesh) {
+        group.children.forEach((item) => {
+          item.material.emissive.b = 1
+        })
 
-    controller.userData.selected = object
+        controller.attach(group)
+        controller.userData.selected = group
+      } else {
+        const object = intersection.object
+        object.material.emissive.b = 1
+
+        controller.attach(object)
+        controller.userData.selected = object
+
+        objectSelected = object
+      }
+    }
   }
 }
 
 function onSelectEnd(event) {
   const controller = event.target
 
-  console.log(group);
-
   if (controller.userData.selected !== undefined) {
     const object = controller.userData.selected
-    object.material.emissive.b = 0
-    group.attach(object)
+    if (object.type === 'Mesh') {
+      object.material.emissive.b = 0
+      group.attach(object)
+    } else {
+      object.children.forEach((item) => {
+        item.material.emissive.b = 0
+      })
+      scene.attach(group)
+    }
 
     controller.userData.selected = undefined
+    console.log(controller.userData.selected)
   }
 }
 
@@ -366,138 +363,83 @@ function animate() {
 function render() {
   cleanIntersected()
 
-  intersectObjects(controller1)
+  intersectObjects(controller2)
   // intersectObjects(controller2)
 
   renderer.render(scene, camera)
 }
 
-// const negated = document.getElementById('negated')
-// const negatedBox = document.getElementById('negatedBox')
-
-// document.getElementById('clipping').addEventListener('click', () => {
-//   clippingObj()
-// })
-
 const clippingObj = () => {
+  clippingOn = !clippingOn
+
   planes = []
-  planesOriginal = []
-  const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
 
-  if (result.length === 0) {
-    // negatedBox.style.display = 'unset'
-    const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
-    const normals = []
-    const centers = []
+  const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
+  const normals = []
+  const centers = []
 
-    planesGeometry.forEach((item) => {
-      const plane = new THREE.Plane()
-      const normal = new THREE.Vector3()
-      const point = new THREE.Vector3()
+  planesGeometry.forEach((item) => {
+    const plane = new THREE.Plane()
+    const normal = new THREE.Vector3()
+    const point = new THREE.Vector3()
 
-      // Gets the centers of the planes
-      const center = getCenterPoint(item)
-      centers.push(center)
+    // Gets the centers of the planes
+    const center = getCenter(item)
+    centers.push(center)
 
-      // Creates the THREE.Plane from THREE.PlaneGeometry
-      normal.set(0, 0, 1).applyQuaternion(item.quaternion)
-      point.copy(item.position)
-      plane.setFromNormalAndCoplanarPoint(normal, point)
+    // Creates the THREE.Plane from THREE.PlaneGeometry
+    normal.set(0, 0, 1).applyQuaternion(item.quaternion)
+    point.copy(item.position)
+    plane.setFromNormalAndCoplanarPoint(normal, point)
 
-      // Saves the normals of the planes
-      normals.push(plane.normal)
+    // Saves the normals of the planes
+    normals.push(plane.normal)
 
-      planes.push(plane)
-    })
+    planes.push(plane)
+  })
 
-    // Calculates the barycenter of the planes
-    const pointx = centers.reduce((prev, curr) => prev + curr.x, 0) / centers.length
-    const pointy = centers.reduce((prev, curr) => prev + curr.y, 0) / centers.length
-    const pointz = centers.reduce((prev, curr) => prev + curr.z, 0) / centers.length
-    const barycenter = new THREE.Vector3(pointx, pointy, pointz)
+  // Calculates the barycenter of the planes
+  const pointx = centers.reduce((prev, curr) => prev + curr.x, 0) / centers.length
+  const pointy = centers.reduce((prev, curr) => prev + curr.y, 0) / centers.length
+  const pointz = centers.reduce((prev, curr) => prev + curr.z, 0) / centers.length
+  const barycenter = new THREE.Vector3(pointx, pointy, pointz)
 
-    const distances = []
+  const distances = []
 
-    // Gets the distance from the plane and the barycenter
-    planes.forEach((item) => {
-      distances.push(item.distanceToPoint(barycenter))
-    })
+  // Gets the distance from the plane and the barycenter
+  planes.forEach((item) => {
+    distances.push(item.distanceToPoint(barycenter))
+  })
 
-    // Negates only the plane with negative distance
-    distances.forEach((distance, index) => {
-      if (distance < 0) {
-        planes[index].negate()
+  // Negates only the plane with negative distance
+  distances.forEach((distance, index) => {
+    if (distance < 0) {
+      planes[index].negate()
+    }
+  })
+
+  // Creates the clipping object with colors
+  // addColorToClippedMesh(scene, group, planes, planes, false)
+
+  group.children.map((object) => {
+    if (object.name !== 'plane') {
+      if (!object.material.clippingPlanes || object.material.clippingPlanes.length === 0) {
+        object.material.clippingPlanes = planes
+        object.material.clipIntersection = false
+      } else {
+        object.material.clippingPlanes = []
       }
-    })
-
-    // Creates the clipping object with colors
-    addColorToClippedMesh(scene, groupFiles, planes, planes, false)
-
-    groupFiles.children.map((object) => {
-      object.material.clipIntersection = false
-    })
-
-    // const planesOriginal = [];
-    planesOriginal = planes.map((item) => item.clone())
-  } else {
-    // negatedBox.style.display = 'none'
-    scene.children
-      .filter((object) => object.name.startsWith('Clipping'))
-      .map((object) => {
-        scene.remove(object)
-      })
-
-    groupFiles.children.map((mesh) => {
-      mesh.material.clippingPlanes = []
-    })
-  }
+    }
+  })
 }
-
-let count = 0
-
-// negated.addEventListener('click', () => {
-//   negatedClipping()
-// })
 
 const negatedClipping = () => {
-  count++
+  planes.forEach((item) => item.negate())
 
-  const result = scene.children.filter((object) => object.name.startsWith('Clipping'))
-
-  if (result.length > 0) {
-    // removes the previous clipping object
-    scene.children
-      .filter((object) => object.name.startsWith('Clipping'))
-      .map((object) => {
-        scene.remove(object)
-      })
-  }
-
-  if (count % 2 != 0) {
-    planes.forEach((item) => item.negate())
-    // removes the previous clipping planes with negated planes for the mesh and original planes for the colored planes
-    addColorToClippedMesh(scene, groupFiles, planes, planesOriginal, true)
-
-    groupFiles.children.map((object) => {
-      object.material.clipIntersection = true
-    })
-  } else {
-    planes.forEach((item) => item.negate())
-
-    // removes the previous clipping planes with negated planes for the mesh and original planes for the colored planes
-    addColorToClippedMesh(scene, groupFiles, planesOriginal, planesOriginal, false)
-
-    groupFiles.children.map((object) => {
-      object.material.clipIntersection = false
-    })
-  }
+  group.children.map((object) => {
+    object.material.clipIntersection = !object.material.clipIntersection
+  })
 }
-
-// document.getElementById('hidePlane').addEventListener('click', () => {
-//   const planesGeometry = scene.children.filter((object) => object.name.startsWith('plane'))
-
-//   planesGeometry.forEach((item) => (item.visible = !item.visible))
-// })
 
 /**
  * Creates a clipping object
@@ -566,22 +508,24 @@ export const addColorToClippedMesh = (scene, group, planesNegated, planes, negat
   let y = 0
 
   group.children.map((mesh) => {
-    for (let i = 0; i < planesNegated.length; i++) {
-      const planeObj = planesNegated[i]
-      const stencilGroup = createPlaneStencilGroup(mesh.name, mesh.position, mesh.geometry, planeObj, y)
+    if (mesh.name !== 'plane') {
+      for (let i = 0; i < planesNegated.length; i++) {
+        const planeObj = planesNegated[i]
+        const stencilGroup = createPlaneStencilGroup(mesh.name, mesh.position, mesh.geometry, planeObj, y)
 
-      object.add(stencilGroup)
+        object.add(stencilGroup)
 
-      const cap = createPlaneColored(planes, planeObj, mesh.material.color, y + 0.1, negatedClick)
-      cap.name = 'Clipping' + mesh.name
-      scene.add(cap)
+        const cap = createPlaneColored(planes, planeObj, mesh.material.color, y + 0.1, negatedClick)
+        cap.name = 'Clipping' + mesh.name
+        scene.add(cap)
 
-      planeObj.coplanarPoint(cap.position)
-      cap.lookAt(cap.position.x - planeObj.normal.x, cap.position.y - planeObj.normal.y, cap.position.z - planeObj.normal.z)
-      y++
+        planeObj.coplanarPoint(cap.position)
+        cap.lookAt(cap.position.x - planeObj.normal.x, cap.position.y - planeObj.normal.y, cap.position.z - planeObj.normal.z)
+        y++
+      }
+
+      mesh.material.clippingPlanes = planesNegated
     }
-
-    mesh.material.clippingPlanes = planesNegated
   })
 }
 
@@ -610,20 +554,13 @@ const createPlaneColored = (planes, plane, color, renderOrder, negatedClick) => 
   return cap
 }
 
-const getCenterPoint = (mesh) => {
-  var geometry = mesh.geometry
-  geometry.computeBoundingBox()
-  var center = new THREE.Vector3()
-  geometry.boundingBox.getCenter(center)
-  mesh.localToWorld(center)
-  return center
-}
-
 const getCenter = (object) => {
+  const geometry = mesh.geometry
+  geometry.computeBoundingBox()
+
   const center = new THREE.Vector3()
+  geometry.boundingBox.getCenter(center)
 
-  const box3 = new THREE.Box3().setFromObject(object)
-  box3.getCenter(center)
-
+  mesh.localToWorld(center)
   return center
 }
