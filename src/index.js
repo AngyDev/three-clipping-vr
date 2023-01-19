@@ -141,11 +141,13 @@ function init() {
   const line = new THREE.Line(geometry)
 
   controller1 = renderer.xr.getController(0)
-  controller1.addEventListener('selectstart', onSelectStart)
-  controller1.addEventListener('selectend', onSelectEnd)
+  // controller1.addEventListener('selectstart', onSelectStart)
+  // controller1.addEventListener('selectend', onSelectEnd)
   scene.add(controller1)
 
   controller2 = renderer.xr.getController(1)
+  controller2.addEventListener('selectstart', onSelectStart)
+  controller2.addEventListener('selectend', onSelectEnd)
   scene.add(controller2)
 
   const controllerModelFactory = new XRControllerModelFactory()
@@ -158,17 +160,13 @@ function init() {
   controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2))
   scene.add(controllerGrip2)
 
-  //
-
   line.name = 'line'
   line.scale.z = 5
 
-  controller1.add(line.clone())
-  // controller2.add(line.clone())
+  // controller1.add(line.clone())
+  controller2.add(line.clone())
 
   raycaster = new THREE.Raycaster()
-
-  //
 
   window.addEventListener('resize', onWindowResize)
 }
@@ -365,7 +363,7 @@ function animate() {
 function render() {
   cleanIntersected()
 
-  intersectObjects(controller1)
+  intersectObjects(controller2)
   // intersectObjects(controller2)
 
   renderer.render(scene, camera)
@@ -422,12 +420,6 @@ const clippingObj = () => {
 
   // Creates the clipping object with colors
   // addColorToClippedMesh(scene, group, planes, planes, false)
-
-  // group.children.map((object) => {
-  //   if (object.name !== 'plane') {
-  //     object.material.clipIntersection = false
-  //   }
-  // })
 
   group.children.map((object) => {
     if (object.name !== 'plane') {
@@ -561,15 +553,6 @@ const createPlaneColored = (planes, plane, color, renderOrder, negatedClick) => 
   cap.renderOrder = renderOrder
   return cap
 }
-
-// const getCenterPoint = (mesh) => {
-//   var geometry = mesh.geometry
-//   geometry.computeBoundingBox()
-//   var center = new THREE.Vector3()
-//   geometry.boundingBox.getCenter(center)
-//   mesh.localToWorld(center)
-//   return center
-// }
 
 const getCenter = (object) => {
   const geometry = mesh.geometry
