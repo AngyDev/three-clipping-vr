@@ -423,11 +423,11 @@ const clippingObj = () => {
   // Creates the clipping object with colors
   // addColorToClippedMesh(scene, group, planes, planes, false)
 
-  group.children.map((object) => {
-    if (object.name !== 'plane') {
-      object.material.clipIntersection = false
-    }
-  })
+  // group.children.map((object) => {
+  //   if (object.name !== 'plane') {
+  //     object.material.clipIntersection = false
+  //   }
+  // })
 
   group.children.map((object) => {
     if (object.name !== 'plane') {
