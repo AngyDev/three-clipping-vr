@@ -6,7 +6,14 @@ The clipping function of the project [threejs-clipping](https://github.com/AngyD
 
 https://clipping-vr.netlify.app/
 
-## Images
+<img align="left" src="./img/start.png" width="400"/>
+<img src="./img/clipping.png" width="400"/>
 
-![start](img/start.png "Start")
-![clipping](img/clipping.png "Clipping")
+## Functionalities
+
+- Add planes
+- Hide planes
+- Clipping
+- Nagate clipping
+- Join mesh, with this function is possible to move all the objects in the scene together
+- Scale the selected object
