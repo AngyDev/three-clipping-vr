@@ -18,3 +18,4 @@ https://clipping-vr.netlify.app/
 - Nagate clipping
 - Join mesh, with this function is possible to move all the objects in the scene together
 - Scale the selected object
+- With the controller is possible to move the object in the scene
