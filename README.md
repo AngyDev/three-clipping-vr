@@ -11,6 +11,7 @@ https://clipping-vr.netlify.app/
 
 ## Functionalities
 
+- Import an STL file
 - Add planes
 - Hide planes
 - Clipping
