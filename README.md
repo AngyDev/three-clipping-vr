@@ -1,4 +1,4 @@
-# Three Clipping VR
+# Clipping in VR
 
 The clipping function of the project [threejs-clipping](https://github.com/AngyDev/threejs-clipping) applied in a VR project
 
