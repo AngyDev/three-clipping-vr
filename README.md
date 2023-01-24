@@ -1,6 +1,6 @@
 # Clipping in VR
 
-The clipping function of the project [threejs-clipping](https://github.com/AngyDev/threejs-clipping) applied in a VR project. For the details of the algorithm check the other repository.
+This code implements clipping in a virtual reality scene using the Three.js library. It includes classes, methods, and examples that are useful for creating and manipulating clipping planes, or for adjusting the visibility of objects in a Three.js VR scene based on the position of the user's head-mounted display. The function used in the project [threejs-clipping](https://github.com/AngyDev/threejs-clipping) is not used because when this function is applied to this case the colored clipping planes are not visible in the correct space, they are translated, I wasn't able to figure out why.
 
 ## Demo
 
