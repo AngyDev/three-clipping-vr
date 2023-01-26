@@ -239,7 +239,6 @@ const joinMeshFn = () => {
  */
 const hidePlanes = () => {
   const planesGeometry = group.children.filter((object) => object.name.startsWith('plane'))
-  console.log('planesGeometry', planesGeometry)
 
   planesGeometry.forEach((item) => (item.visible = !item.visible))
 }
@@ -313,7 +312,6 @@ function onSelectEnd(event) {
     }
 
     controller.userData.selected = undefined
-    console.log(controller.userData.selected)
   }
 }
 
