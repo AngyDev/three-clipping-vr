@@ -354,8 +354,6 @@ function cleanIntersected() {
   }
 }
 
-//
-
 function animate() {
   renderer.setAnimationLoop(render)
 }
@@ -369,6 +367,9 @@ function render() {
   renderer.render(scene, camera)
 }
 
+/**
+ * Function to clipping the object with the planes in the scene
+ */
 const clippingObj = () => {
   clippingOn = !clippingOn
 
@@ -433,6 +434,9 @@ const clippingObj = () => {
   })
 }
 
+/**
+ * Function to negate the clipping with the same planes
+ */
 const negatedClipping = () => {
   planes.forEach((item) => item.negate())
 
